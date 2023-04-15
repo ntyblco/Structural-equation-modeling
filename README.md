@@ -1,4 +1,6 @@
-# Predicting the growth of nearshoring in Mexico
+# Structural equation modeling
+
+Predicting the growth of nearshoring in Mexico
 
 Visualize the project here: 
 
