@@ -1,0 +1,255 @@
+---
+title: "Act 3"
+author: Samantha Martinez - A01235915, Antonio Maldonado - A01176753, Natalia Blanco
+  - A01720531
+date: "3/9/2023"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: FALSE
+    toc_float:
+      smooth_scroll: FALSE
+      collapsed: FALSE
+  
+---
+
+<style>
+#TOC {
+  color: #708090
+  font-family: Calibri;
+  font-size: 16px;
+  border-color: #708090;
+}
+body {
+  color: #708090;
+  font-family: Calibri; 
+  background-color: #F5F5F5;
+}
+pre {
+  color: #708090;
+  background-color: #F8F8FF;
+}
+#header{
+  color: darkcyan;
+  background-color: aliceblue;
+  opacity: 0.8;
+  font-family: Calibri;
+  font-size: 20px;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducción 
+
+Un modelo de ecuaciones estructurales se utiliza para modelar relaciones complejas entre variables latentes y observadas. Esta técnica permite especificar relaciones causales entre variables, lo que la convierte en una herramienta poderosa para entender cómo diferentes factores pueden influir en un resultado de interés.
+
+Algunas características del modelo SEM son las siguientes:
+
+-Puede integrar múltiples ecuaciones simultáneamente en un solo modelo.
+-Permite especificar relaciones causales entre variables y evaluar su ajuste.
+-Proporciona medidas de ajuste para evaluar la calidad del modelo y determinar si se ajusta bien a los datos.
+- Puede utilizarse para realizar análisis predictivos y para evaluar el impacto de intervenciones o cambios en los factores que se están modelando.
+
+
+
+Cargar librerias
+```{r include=FALSE}
+library(tidyverse)
+library(lavaan)
+library(semPlot)
+library(foreign)
+library(car) 
+library(logr)
+```
+
+Directorio
+```{r}
+setwd("C:/Users/ntybl/OneDrive/Documents/Semestre 8/Datos")  
+df=read.csv("data_fdi.csv")
+```
+
+Convertir los negativos a la media y promedio 
+```{r}
+data_n <- df
+data_n$business_activity <- replace(df$business_activity, df$business_activity <0, 0.18)
+summary(data_n)
+data_n$new_fdi <- replace(df$new_fdi, df$new_fdi < 0, 202.96)
+summary(data_n)
+```
+
+Convertir los datos a log
+```{r}
+data_n$daily_wages=log(data_n$daily_wages)
+data_n$pop_density=log(data_n$pop_density)
+data_n$employment_rate=log(data_n$employment_rate)
+data_n$exchange_rate=log(data_n$exchange_rate)
+data_n$border_distance=log(data_n$border_distance)
+data_n$business_activity=log(data_n$business_activity)
+data_n$new_fdi=log(data_n$new_fdi)
+data_n$patents_rate=log(data_n$patents_rate)
+summary(data_n)
+```
+
+# Estimación de Modelo de Ecuaciones Estructurales
+ 
+Problema: Examinar los efectos que las variables como salario diario, densidad de población, tasa de empleo, tipo de cambio, distancia a frontera, tasa de patentes y actividad empresarial tienen en relación al fdi en México entre los años 2018 y 2019. 
+
+Hipótesis 
+
+-	Incremento en actividad empresarial impactara positivamente el fdi 
+
+-	Un salario mínimo bajo incrementara positivamente el fdi 
+
+-	Una distancia a frontera corta afectara positivamente el fdi 
+
+
+Modelo 1 new_fdi, variable endogena = business_activity
+
+```{r}
+model5 <-'new_fdi ~ pop_density + border_distance + daily_wages + business_activity
+business_activity ~ exchange_rate + employment_rate'
+fit4 <- sem(model5,data=data_n)
+varTable(fit4)
+summary(fit4, fit.measures=TRUE,standardized=TRUE,rsquare=TRUE)
+semPaths(fit4,what="paths",whatLabels="par",style="lisrel",rotation=2)
+
+```
+
+Modelo 2 new_fdi, variable endogena = patents_rate
+```{r}
+model6 <-'new_fdi ~ pop_density + exchange_rate  + patents_rate + business_activity
+patents_rate ~ border_distance + employment_rate'
+fit5 <- sem(model6,data=data_n)
+varTable(fit5)
+summary(fit5, fit.measures=TRUE,standardized=TRUE,rsquare=TRUE)
+semPaths(fit5,what="paths",whatLabels="par",style="lisrel",rotation=2)
+```
+
+
+# Pruebas de Diagnóstico
+ 
+Modelo 1
+```{r}
+summary(fit4, fit.measures=TRUE,standardized=TRUE,rsquare=TRUE)
+```
+
+Sabemos que en el modelo SEM se busca tener valores altos para el CFI y un valor bajo para el RMSEA y el AIC, así mismo se busca un R-Square alto ya que esto significa que el modelo es una buena representación de los datos y que las variables predictoras en el modelo son importantes para explicar la variable dependiente.
+
+En el modelo anterior podemos observar lo siguiente:
+
+CFI = 1.000
+
+RMSEA = 0.000
+
+AIC = 405.640
+
+R-Square:
+
+new_fdi = 0.252
+
+business_ctvty = 0.133
+
+
+Podemos concluir que este modelo presenta un alto CFI lo que nos lleva a la conclusión de que este modelo es excelente ya que el CFI varía entre 0 y 1, y se considera que un CFI mayor o igual a 0.90 indica un buen ajuste del modelo, aunque un CFI mayor o igual a 0,95 es considerado un ajuste excelente.
+
+El RMSEA se expresa la desviación estándar de la población y varía entre 0 y 1 entre mas cerca del 0 este el RMSEA significa que el modelo tiene un mejor ajuste, considerando que el modelo 1 tiene un RMSEA de 0.00 podemos concluir que tiene un ajuste excelente. 
+
+AIC, cuanto menor sea el valor del AIC, mejor será el ajuste del modelo, es necesario comparar el AIC de diferentes modelos en este caso el AIC es de 405.6 lo cual es mayor al AIC del modelo 2. 
+
+R-Square, El R-squarer varía entre 0 y 1, un R-Square alto indica que el modelo es una buena representación de los datos en este caso se tienen R-Squares de 0.252 y 0.133 lo que indica un representación promedio.
+
+
+
+Modelo 2
+```{r}
+summary(fit5, fit.measures=TRUE,standardized=TRUE,rsquare=TRUE)
+```
+
+En el modelo anterior podemos observar lo siguiente:
+
+CFI = 0.038
+
+RMSEA = 0.127
+
+AIC = 392.342
+
+R-Square:
+
+new_fdi = 0.089
+
+patents_rate = 0.005
+
+
+Este modelo presenta un CFI bajo lo que significa que este modelo no tiene un buen ajuste con los datos. 
+
+El RMSEA que presenta este modelo es de 0.038, este RMSEA representa un buen ajuste del modelo ya que es menor a 0.05. 
+
+El AIC de este modelo es menor al AIC del modelo 1 ya que es menor. 
+
+R-Squares este modelo presenta R-Squares muy bajos sobre todo en comparación con el modelo 1 lo que significa que este modelo no es una buena representación de los datos.
+
+
+# Selección de Modelo e Interpretación de Resultados
+ 
+Se selecciono el modelo 1 ya que al comparar las pruebas de diagnóstico se llegó a la conclusión de que este modelo muestra un mejor desempeño en general, en el único aspecto que el modelo 2 es mejor que el modelo elegido fue en el valor del AIC sin embargo es una diferencia de 13.2, tomando en cuenta los otros resultados de diagnóstico que en este caso fueron CFI, RMSEA, AIC y R-Square se llego a la conclusión que el modelo con mejor desempeño es el modelo 1. 
+
+Modelo 1 new_fdi, variable endogena = business_activity
+
+```{r}
+summary(fit4, fit.measures=TRUE,standardized=TRUE,rsquare=TRUE)
+semPaths(fit4,what="paths",whatLabels="par",style="lisrel",rotation=2)
+```
+
+Podemos ven es este diagrama semPaths que employment_rate tiene una relación directa con una fuerza de -2.80 hacia business_activity la cual es negativa e indica que un aumento en una unidad de business_activity representa un decremento de -2.80 en employment_rate.
+
+La siguiente relación visualizada es una relación directa entre exchange_rate y business_activity en este caso esta relación es positiva con un valor de 18.79 este valor indica la fuerza de la relación y podemos concluir que en este caso es fuerte. Esta relación positiva indica que un incremento de una unidad en business_activity representa un incremento de 18.79 en exchange_rate. 
+
+En la parte posterior podemos visualizar las relaciones con new_fdi las cuales son las siguientes: 
+
+daily_wages representa una relación positiva directa con new_fdi con valor de 3.34, lo que significa que un incremento de una unidad en new_fdi tendra un incremento de 3.34 en daily_wages. 
+
+border_distance representa una relación negativa directa con un valor de -0.15 hacia new_fdi lo que significa que un incremento de una unidad en new_fdi representa un decremento de -0.15 en border_distance. 
+
+Por ultimo pop_density muestra una relación positiva y directa hacia new_fdi con un valor de 0.17 lo que significa que un incremento en una unidad de new_fdi representa un incremento de 0.17 en pop_density. 
+
+
+# Conclusiones
+
+En el análisis anterior tuvimos la oportunidad de analizar dos modelos SEM en los cuales se buscaba encontrar la relación de las variables y como estas afectaban el FDI, entendimos lo que es una variable endógena las cuales son variables que son afectadas por otras variables dentro de un modelo. Así mismo entendimos como analizar las pruebas de diagnostico y lo que cada una de ellas representa sobre el modelo. 
+
+En conclusión podemos determinar que los aspectos que pueden determinar desempeño del nearshoring para el caso de México son el tipo de cambio, la tasa de empleo y  la tasa de salarios diarios ya que estas variables son las que muestran un mayor impacto sobre el FDI.
+
+
+# Referencias
+
+Cheung, S. F., &amp; Chio Lai, M. (2022, August 25). A Quick Start Guide on Using semptools. A quick start guide on using semptools. Retrieved March 12, 2023, from https://cran.r-project.org/web/packages/semptools/vignettes/semptools.html 
+
+Korstanje, J. (2021, June 27). Structural equation modeling. Medium. Retrieved March 12, 2023, from https://towardsdatascience.com/structural-equation-modeling-dca298798f4d#:~:text=What%20is%20Structural%20Equation%20Modeling,that%20cannot%20be%20measured%20directly 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
